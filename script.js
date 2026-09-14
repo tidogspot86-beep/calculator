@@ -15,7 +15,6 @@ function multiply(a, b) {
 }
 
 function divide(a, b) {
-
   if (b === 0) {
     return "Nice try! Can't divide by 0.";
   }
@@ -24,20 +23,11 @@ function divide(a, b) {
 }
 
 
-// You can test the functions in the console:
-//
-// add(2, 3)
-// subtract(10, 5)
-// multiply(4, 3)
-// divide(10, 2)
-
-
 // ------------------------------------
 // B. OPERATE FUNCTION
 // ------------------------------------
 
 function operate(operator, a, b) {
-
   if (operator === "+") {
     return add(a, b);
   }
@@ -60,10 +50,14 @@ function operate(operator, a, b) {
 // CALCULATOR VARIABLES
 // ------------------------------------
 
-// Stores what is currently shown
-// on the calculator screen
+// Number the user is currently typing
 
-let displayValue = "0";
+let currentNumber = "";
+
+
+// Full operation shown on the screen
+
+let expression = "";
 
 
 // Stores the first number
@@ -76,13 +70,13 @@ let firstNumber = null;
 let currentOperator = null;
 
 
-// Tells the calculator that the next
-// number should replace the display
+// Tells us if we are waiting
+// for another number
 
 let waitingForSecondNumber = false;
 
 
-// Tells the calculator that a result
+// Tells us if a result
 // was just displayed
 
 let resultShown = false;
@@ -119,23 +113,19 @@ const decimalButton =
 
 function updateDisplay() {
 
-  display.textContent = displayValue;
-
-
-  // Disable the decimal button if
-  // the current number already
-  // contains a decimal point
-
-  if (
-    displayValue.includes(".") &&
-    !waitingForSecondNumber &&
-    !resultShown
-  ) {
-
-    decimalButton.disabled = true;
-
+  if (expression === "") {
+    display.textContent = "0";
   } else {
+    display.textContent = expression;
+  }
 
+
+  // Disable decimal if the current
+  // number already has one
+
+  if (currentNumber.includes(".")) {
+    decimalButton.disabled = true;
+  } else {
     decimalButton.disabled = false;
   }
 }
@@ -147,72 +137,94 @@ function updateDisplay() {
 
 function inputNumber(number) {
 
-  // If an operator was just pressed,
-  // the next number should replace
-  // the old display
+  // If a result is showing and the
+  // user enters a new number,
+  // start a new calculation
 
-  if (
-    waitingForSecondNumber ||
-    resultShown ||
-    displayValue === "Nice try! Can't divide by 0."
-  ) {
+  if (resultShown) {
 
-    displayValue = number;
+    expression = "";
+    currentNumber = "";
 
-    waitingForSecondNumber = false;
+    firstNumber = null;
+    currentOperator = null;
 
     resultShown = false;
+  }
 
-  } else if (displayValue === "0") {
 
-    displayValue = number;
+  // Avoid numbers like 00005
+
+  if (currentNumber === "0") {
+
+    currentNumber = number;
+
+    expression =
+      expression.slice(0, -1) + number;
 
   } else {
 
-    displayValue += number;
+    currentNumber += number;
+
+    expression += number;
   }
+
+
+  waitingForSecondNumber = false;
 
   updateDisplay();
 }
 
 
 // ------------------------------------
-// G. DECIMAL BUTTON
+// G. DECIMAL
 // ------------------------------------
 
 function inputDecimal() {
 
-  // Start a new decimal number
-  // after an operator or result
+  // New calculation after a result
 
-  if (
-    waitingForSecondNumber ||
-    resultShown ||
-    displayValue === "Nice try! Can't divide by 0."
-  ) {
+  if (resultShown) {
 
-    displayValue = "0.";
+    expression = "";
+    currentNumber = "";
 
-    waitingForSecondNumber = false;
+    firstNumber = null;
+    currentOperator = null;
 
     resultShown = false;
-
   }
 
-  // Only add a decimal if there
-  // isn't one already
 
-  else if (!displayValue.includes(".")) {
+  // Do not allow more than one decimal
 
-    displayValue += ".";
+  if (currentNumber.includes(".")) {
+    return;
   }
+
+
+  // If decimal is pressed first
+
+  if (currentNumber === "") {
+
+    currentNumber = "0.";
+
+    expression += "0.";
+
+  } else {
+
+    currentNumber += ".";
+
+    expression += ".";
+  }
+
 
   updateDisplay();
 }
 
 
 // ------------------------------------
-// ROUND LONG DECIMALS
+// ROUND RESULT
 // ------------------------------------
 
 function roundResult(number) {
@@ -229,36 +241,56 @@ function roundResult(number) {
 
 function chooseOperator(operator) {
 
-  // Don't use an error message
-  // as a number
+  // User must enter a number first
 
-  if (displayValue === "Nice try! Can't divide by 0.") {
+  if (
+    currentNumber === "" &&
+    firstNumber === null
+  ) {
     return;
   }
 
 
-  const inputValue = Number(displayValue);
+  // If the result was just shown,
+  // use that result in a new operation
+
+  if (resultShown) {
+
+    firstNumber = Number(expression);
+
+    currentNumber = "";
+
+    resultShown = false;
+  }
 
 
-  // If the user presses operators
-  // one after another:
-  //
-  // 5 + -
-  //
-  // simply replace + with -
+  // If user presses two operators
+  // in a row, replace the old one
 
   if (
     currentOperator !== null &&
     waitingForSecondNumber
   ) {
 
+    expression =
+      expression.slice(0, -3);
+
+    expression +=
+      " " + getOperatorSymbol(operator) + " ";
+
     currentOperator = operator;
+
+    updateDisplay();
 
     return;
   }
 
 
-  // Store the first number
+  const inputValue =
+    Number(currentNumber);
+
+
+  // First operation
 
   if (firstNumber === null) {
 
@@ -267,14 +299,8 @@ function chooseOperator(operator) {
   }
 
 
-  // If we already have:
-  //
-  // firstNumber
-  // operator
-  // second number
-  //
-  // calculate before starting
-  // the next operation
+  // There is already a previous
+  // operation, so solve it first
 
   else if (currentOperator !== null) {
 
@@ -285,14 +311,15 @@ function chooseOperator(operator) {
     );
 
 
-    // Divide by zero error
+    // Division by zero
 
     if (typeof result === "string") {
 
-      displayValue = result;
+      expression = result;
+
+      currentNumber = "";
 
       firstNumber = null;
-
       currentOperator = null;
 
       waitingForSecondNumber = false;
@@ -308,45 +335,62 @@ function chooseOperator(operator) {
     result = roundResult(result);
 
 
-    displayValue = String(result);
-
-
-    // The result becomes the first
-    // number of the new operation
+    // IMPORTANT:
+    // We store the result internally,
+    // but DON'T replace the expression
+    // on the display.
 
     firstNumber = result;
-
-
-    updateDisplay();
   }
 
 
   currentOperator = operator;
 
 
-  // The next number entered should
-  // replace the display
+  expression +=
+    " " + getOperatorSymbol(operator) + " ";
+
+
+  currentNumber = "";
 
   waitingForSecondNumber = true;
 
-  resultShown = false;
 
   updateDisplay();
 }
 
 
 // ------------------------------------
-// E. EQUALS BUTTON
+// OPERATOR SYMBOLS
+// ------------------------------------
+
+function getOperatorSymbol(operator) {
+
+  if (operator === "*") {
+    return "×";
+  }
+
+  if (operator === "/") {
+    return "÷";
+  }
+
+  return operator;
+}
+
+
+// ------------------------------------
+// E. EQUALS
 // ------------------------------------
 
 function calculate() {
 
-  // Don't calculate if the user
-  // hasn't entered everything yet
+  // Don't calculate incomplete
+  // operations
 
   if (
     currentOperator === null ||
     firstNumber === null ||
+    currentNumber === "" ||
     waitingForSecondNumber
   ) {
 
@@ -354,7 +398,8 @@ function calculate() {
   }
 
 
-  const secondNumber = Number(displayValue);
+  const secondNumber =
+    Number(currentNumber);
 
 
   let result = operate(
@@ -364,21 +409,21 @@ function calculate() {
   );
 
 
-  // Divide by zero
+  // Division by zero
 
   if (typeof result === "string") {
 
-    displayValue = result;
+    expression = result;
 
   } else {
 
     result = roundResult(result);
 
-    displayValue = String(result);
+    expression = String(result);
   }
 
 
-  // Reset stored operation
+  currentNumber = "";
 
   firstNumber = null;
 
@@ -399,7 +444,9 @@ function calculate() {
 
 function clearCalculator() {
 
-  displayValue = "0";
+  currentNumber = "";
+
+  expression = "";
 
   firstNumber = null;
 
@@ -420,46 +467,33 @@ function clearCalculator() {
 
 function backspace() {
 
-  // Don't remove digits while waiting
-  // for the second number
+  // If result is showing,
+  // clear everything
+
+  if (resultShown) {
+
+    clearCalculator();
+
+    return;
+  }
+
+
+  // Don't delete an operator
 
   if (waitingForSecondNumber) {
     return;
   }
 
 
-  // If a result was just shown,
-  // reset the display
+  // Remove last digit
 
-  if (
-    resultShown ||
-    displayValue === "Nice try! Can't divide by 0."
-  ) {
+  if (currentNumber.length > 0) {
 
-    displayValue = "0";
+    currentNumber =
+      currentNumber.slice(0, -1);
 
-    resultShown = false;
-
-    updateDisplay();
-
-    return;
-  }
-
-
-  // Remove the last character
-
-  displayValue = displayValue.slice(0, -1);
-
-
-  // If everything was deleted,
-  // return to 0
-
-  if (
-    displayValue === "" ||
-    displayValue === "-"
-  ) {
-
-    displayValue = "0";
+    expression =
+      expression.slice(0, -1);
   }
 
 
@@ -468,27 +502,37 @@ function backspace() {
 
 
 // ------------------------------------
-// BUTTON EVENT LISTENERS
+// BUTTON EVENTS
 // ------------------------------------
 
 numberButtons.forEach(function (button) {
 
-  button.addEventListener("click", function () {
+  button.addEventListener(
+    "click",
+    function () {
 
-    inputNumber(button.dataset.number);
+      inputNumber(
+        button.dataset.number
+      );
 
-  });
+    }
+  );
 
 });
 
 
 operatorButtons.forEach(function (button) {
 
-  button.addEventListener("click", function () {
+  button.addEventListener(
+    "click",
+    function () {
 
-    chooseOperator(button.dataset.operator);
+      chooseOperator(
+        button.dataset.operator
+      );
 
-  });
+    }
+  );
 
 });
 
@@ -521,77 +565,86 @@ backspaceButton.addEventListener(
 // I. KEYBOARD SUPPORT
 // ------------------------------------
 
-window.addEventListener("keydown", function (event) {
+window.addEventListener(
+  "keydown",
+  function (event) {
 
-  const key = event.key;
+    const key = event.key;
 
 
-  // Numbers
+    // Numbers
 
-  if (key >= "0" && key <= "9") {
+    if (
+      key >= "0" &&
+      key <= "9"
+    ) {
 
-    inputNumber(key);
+      inputNumber(key);
+
+    }
+
+
+    // Decimal
+
+    else if (key === ".") {
+
+      inputDecimal();
+
+    }
+
+
+    // Operators
+
+    else if (
+      key === "+" ||
+      key === "-" ||
+      key === "*" ||
+      key === "/"
+    ) {
+
+      chooseOperator(key);
+
+    }
+
+
+    // Equals
+
+    else if (
+      key === "=" ||
+      key === "Enter"
+    ) {
+
+      calculate();
+
+    }
+
+
+    // Backspace
+
+    else if (
+      key === "Backspace"
+    ) {
+
+      backspace();
+
+    }
+
+
+    // Clear
+
+    else if (
+      key === "Escape" ||
+      key === "Delete"
+    ) {
+
+      clearCalculator();
+
+    }
 
   }
+);
 
 
-  // Decimal
-
-  else if (key === ".") {
-
-    inputDecimal();
-
-  }
-
-
-  // Operators
-
-  else if (
-    key === "+" ||
-    key === "-" ||
-    key === "*" ||
-    key === "/"
-  ) {
-
-    chooseOperator(key);
-
-  }
-
-
-  // Equals
-
-  else if (
-    key === "=" ||
-    key === "Enter"
-  ) {
-
-    calculate();
-
-  }
-
-
-  // Backspace
-
-  else if (key === "Backspace") {
-
-    backspace();
-
-  }
-
-
-  // Clear
-
-  else if (
-    key === "Escape" ||
-    key === "Delete"
-  ) {
-
-    clearCalculator();
-  }
-
-});
-
-
-// Show initial value
+// Initial display
 
 updateDisplay();
