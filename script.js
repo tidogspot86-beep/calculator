@@ -1,3 +1,24 @@
+// GET HTML ELEMENTS
+
+const display = document.getElementById("display");
+
+const numberButtons = document.querySelectorAll("[data-number]");
+const operatorButtons = document.querySelectorAll("[data-operator]");
+
+const equalsButton = document.getElementById("equals");
+const clearButton = document.getElementById("clear");
+const decimalButton = document.getElementById("decimal");
+const backspaceButton = document.getElementById("backspace");
+
+
+// VARIABLES
+
+let firstNumber = "";
+let secondNumber = "";
+let operator = "";
+let result = "";
+
+
 // BASIC MATH FUNCTIONS
 
 function add(a, b) {
@@ -13,6 +34,7 @@ function multiply(a, b) {
 }
 
 function divide(a, b) {
+
   if (b === 0) {
     return "Can't divide by 0";
   }
@@ -24,6 +46,7 @@ function divide(a, b) {
 // OPERATE FUNCTION
 
 function operate(operator, a, b) {
+
   if (operator === "+") {
     return add(a, b);
   }
@@ -42,149 +65,118 @@ function operate(operator, a, b) {
 }
 
 
-// VARIABLES
-
-let firstNumber = "";
-let secondNumber = "";
-let operator = "";
-let result = "";
-
-
-// GET HTML ELEMENTS
-
-const display = document.getElementById("display");
-
-const numberButtons = document.querySelectorAll("[data-number]");
-const operatorButtons = document.querySelectorAll("[data-operator]");
-
-const equalsButton = document.getElementById("equals");
-const clearButton = document.getElementById("clear");
-const decimalButton = document.getElementById("decimal");
-const backspaceButton = document.getElementById("backspace");
-
-
-// UPDATE THE CALCULATOR DISPLAY
+// UPDATE DISPLAY
 
 function updateDisplay() {
 
-  // Before choosing an operator
   if (operator === "") {
-    display.textContent = firstNumber || "0";
-  }
 
-  // Operator was chosen
-  else if (secondNumber === "") {
-    display.textContent = firstNumber + " " + operator;
-  }
+    if (firstNumber === "") {
+      display.textContent = "0";
+    } else {
+      display.textContent = firstNumber;
+    }
 
-  // Second number is being entered
-  else {
+  } else {
+
     display.textContent =
       firstNumber + " " + operator + " " + secondNumber;
   }
 }
 
 
-// NUMBER BUTTONS
+// INPUT NUMBER
 
-numberButtons.forEach(function (button) {
+function inputNumber(number) {
 
-  button.addEventListener("click", function () {
-
-    let number = button.dataset.number;
-
-    // If there is no operator,
-    // add the number to firstNumber
-
-    if (operator === "") {
-
-      // If a result was shown,
-      // start a new calculation
-
-      if (result !== "") {
-        firstNumber = "";
-        result = "";
-      }
-
-      firstNumber += number;
-    }
-
-    // If there is already an operator,
-    // add the number to secondNumber
-
-    else {
-      secondNumber += number;
-    }
-
-    updateDisplay();
-  });
-
-});
-
-
-// OPERATOR BUTTONS
-
-operatorButtons.forEach(function (button) {
-
-  button.addEventListener("click", function () {
-
-    // Only choose an operator
-    // if there is already a first number
-
-    if (firstNumber === "") {
-      return;
-    }
-
-    operator = button.dataset.operator;
-
-    updateDisplay();
-  });
-
-});
-
-
-// DECIMAL BUTTON
-
-decimalButton.addEventListener("click", function () {
-
-  // Decimal for first number
+  // If there is no operator yet,
+  // add numbers to the first number
 
   if (operator === "") {
 
-    if (!firstNumber.includes(".")) {
+    // Start a new calculation
+    // if a result was already shown
+
+    if (result !== "") {
+      firstNumber = "";
+      result = "";
+    }
+
+    firstNumber = firstNumber + number;
+  }
+
+  // If there is an operator,
+  // add numbers to the second number
+
+  else {
+
+    secondNumber = secondNumber + number;
+  }
+
+  updateDisplay();
+}
+
+
+// CHOOSE OPERATOR
+
+function chooseOperator(newOperator) {
+
+  // Do nothing if the user
+  // has not entered a number
+
+  if (firstNumber === "") {
+    return;
+  }
+
+
+  operator = newOperator;
+
+  updateDisplay();
+}
+
+
+// DECIMAL
+
+function inputDecimal() {
+
+  // First number
+
+  if (operator === "") {
+
+    if (firstNumber.includes(".") === false) {
 
       if (firstNumber === "") {
         firstNumber = "0";
       }
 
-      firstNumber += ".";
+      firstNumber = firstNumber + ".";
     }
   }
 
-  // Decimal for second number
+  // Second number
 
   else {
 
-    if (!secondNumber.includes(".")) {
+    if (secondNumber.includes(".") === false) {
 
       if (secondNumber === "") {
         secondNumber = "0";
       }
 
-      secondNumber += ".";
+      secondNumber = secondNumber + ".";
     }
   }
 
   updateDisplay();
-});
+}
 
 
-// EQUALS BUTTON
+// CALCULATE
 
-equalsButton.addEventListener("click", function () {
+function calculate() {
 
-  // Make sure the calculator has
-  // two numbers and an operator
+  // We need two numbers
+  // and an operator
 
   if (
     firstNumber === "" ||
@@ -199,26 +191,143 @@ equalsButton.addEventListener("click", function () {
   let number2 = Number(secondNumber);
 
 
-  result = operate(operator, number1, number2);
+  result = operate(
+    operator,
+    number1,
+    number2
+  );
 
 
-  // Round long decimal results
+  // If the result is a number,
+  // round long decimals
 
   if (typeof result === "number") {
-    result = Math.round(result * 100000) / 100000;
+
+    result =
+      Math.round(result * 100000) / 100000;
   }
 
 
   display.textContent = result;
 
 
-  // The result can be used
-  // for another calculation
+  // If the user divided by zero,
+  // reset the calculator
+
+  if (result === "Can't divide by 0") {
+
+    firstNumber = "";
+    secondNumber = "";
+    operator = "";
+
+    return;
+  }
+
+
+  // Save the result so it can
+  // be used in another operation
 
   firstNumber = String(result);
 
   secondNumber = "";
+
   operator = "";
+}
+
+
+// CLEAR
+
+function clearCalculator() {
+
+  firstNumber = "";
+
+  secondNumber = "";
+
+  operator = "";
+
+  result = "";
+
+  updateDisplay();
+}
+
+
+// BACKSPACE
+
+function backspace() {
+
+  // If there is a second number,
+  // delete from the second number
+
+  if (secondNumber !== "") {
+
+    secondNumber =
+      secondNumber.slice(0, -1);
+  }
+
+  // If there is an operator,
+  // remove it
+
+  else if (operator !== "") {
+
+    operator = "";
+  }
+
+  // Otherwise delete from
+  // the first number
+
+  else {
+
+    firstNumber =
+      firstNumber.slice(0, -1);
+
+    result = "";
+  }
+
+  updateDisplay();
+}
+
+
+// NUMBER BUTTONS
+
+numberButtons.forEach(function (button) {
+
+  button.addEventListener("click", function () {
+
+    inputNumber(button.dataset.number);
+
+  });
+
+});
+
+
+// OPERATOR BUTTONS
+
+operatorButtons.forEach(function (button) {
+
+  button.addEventListener("click", function () {
+
+    chooseOperator(button.dataset.operator);
+
+  });
+
+});
+
+
+// DECIMAL BUTTON
+
+decimalButton.addEventListener("click", function () {
+
+  inputDecimal();
+
+});
+
+
+// EQUALS BUTTON
+
+equalsButton.addEventListener("click", function () {
+
+  calculate();
+
 });
 
 
@@ -226,12 +335,8 @@ equalsButton.addEventListener("click", function () {
 
 clearButton.addEventListener("click", function () {
 
-  firstNumber = "";
-  secondNumber = "";
-  operator = "";
-  result = "";
+  clearCalculator();
 
-  updateDisplay();
 });
 
 
@@ -239,33 +344,12 @@ clearButton.addEventListener("click", function () {
 
 backspaceButton.addEventListener("click", function () {
 
-  // Delete from second number first
+  backspace();
 
-  if (secondNumber !== "") {
-
-    secondNumber = secondNumber.slice(0, -1);
-  }
-
-  // If there is an operator,
-  // remove the operator
-
-  else if (operator !== "") {
-
-    operator = "";
-  }
-
-  // Otherwise delete from first number
-
-  else if (firstNumber !== "") {
-
-    firstNumber = firstNumber.slice(0, -1);
-  }
-
-  updateDisplay();
 });
 
 
-// KEYBOARD SUPPORT
+// KEYBOARD
 
 window.addEventListener("keydown", function (event) {
 
@@ -276,21 +360,7 @@ window.addEventListener("keydown", function (event) {
 
   if (key >= "0" && key <= "9") {
 
-    if (operator === "") {
-
-      if (result !== "") {
-        firstNumber = "";
-        result = "";
-      }
-
-      firstNumber += key;
-
-    } else {
-
-      secondNumber += key;
-    }
-
-    updateDisplay();
+    inputNumber(key);
   }
 
 
@@ -303,12 +373,7 @@ window.addEventListener("keydown", function (event) {
     key === "/"
   ) {
 
-    if (firstNumber !== "") {
-
-      operator = key;
-
-      updateDisplay();
-    }
+    chooseOperator(key);
   }
 
 
@@ -316,30 +381,7 @@ window.addEventListener("keydown", function (event) {
 
   else if (key === ".") {
 
-    if (operator === "") {
-
-      if (!firstNumber.includes(".")) {
-
-        if (firstNumber === "") {
-          firstNumber = "0";
-        }
-
-        firstNumber += ".";
-      }
-
-    } else {
-
-      if (!secondNumber.includes(".")) {
-
-        if (secondNumber === "") {
-          secondNumber = "0";
-        }
-
-        secondNumber += ".";
-      }
-    }
-
-    updateDisplay();
+    inputDecimal();
   }
 
 
@@ -350,7 +392,7 @@ window.addEventListener("keydown", function (event) {
     key === "="
   ) {
 
-    equalsButton.click();
+    calculate();
   }
 
 
@@ -358,7 +400,7 @@ window.addEventListener("keydown", function (event) {
 
   else if (key === "Backspace") {
 
-    backspaceButton.click();
+    backspace();
   }
 
 
@@ -369,12 +411,12 @@ window.addEventListener("keydown", function (event) {
     key === "Delete"
   ) {
 
-    clearButton.click();
+    clearCalculator();
   }
 
 });
 
 
-// START CALCULATOR
+// SHOW 0 WHEN THE PAGE STARTS
 
 updateDisplay();
